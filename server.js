@@ -10,5 +10,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Cha de Panela rodando na porta ${PORT}`);
+  console.log(`Chá de Panela rodando na porta ${PORT}`);
 });
