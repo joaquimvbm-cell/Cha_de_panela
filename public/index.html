@@ -100,6 +100,20 @@
     .pix-hint{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.95rem;color:var(--ink-soft);text-align:center;}
     .btn-mp{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px;background:#009ee3;color:white;border:none;font-size:.85rem;letter-spacing:.1em;cursor:pointer;text-decoration:none;transition:background .25s;}
     .btn-mp:hover{background:#007ab5;}
+    .btn-mp:disabled{background:#b0b0b0;cursor:not-allowed;}
+    .payment-options{display:flex;flex-direction:column;gap:16px;}
+    .payment-option{border:1px solid var(--border);padding:16px;cursor:pointer;transition:all .25s;}
+    .payment-option:hover{border-color:var(--terra);}
+    .payment-option.active{border-color:var(--terra);background:rgba(181,113,74,.05);}
+    .payment-option-header{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+    .payment-option-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .2s;}
+    .payment-option.active .payment-option-radio{border-color:var(--terra);}
+    .payment-option-radio::after{content:'';width:10px;height:10px;border-radius:50%;background:var(--terra);transform:scale(0);transition:transform .2s;}
+    .payment-option.active .payment-option-radio::after{transform:scale(1);}
+    .payment-option-title{font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);font-weight:500;}
+    .payment-option-desc{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.9rem;color:var(--ink-soft);margin-left:28px;}
+    .payment-content{margin-top:16px;display:none;}
+    .payment-content.active{display:block;}
     .modal-thanks{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.95rem;color:var(--ink-soft);text-align:center;margin-top:18px;line-height:1.7;}
 
     /* FOOTER */
@@ -347,20 +361,41 @@ function openModal(id) {
 
   var pay    = document.getElementById("modalPayment");
   var method = document.getElementById("modalMethod");
+  var chave = p.chavePix || CONFIG.chavePixPadrao;
 
-  if (p.pagamento === "pix") {
-    var chave = p.chavePix || CONFIG.chavePixPadrao;
-    method.textContent = "Pagamento via PIX";
-    pay.innerHTML =
-      '<div class="pix-section">' +
-        '<p class="pix-hint">Toque na chave para copiar:</p>' +
-        '<div class="pix-key" onclick="copyPix(\'' + chave + '\')">' + chave + '</div>' +
-        '<p class="pix-hint">Após o PIX, nos avise pelo WhatsApp. &#128156;</p>' +
-      '</div>';
-  } else if (p.pagamento === "mp") {
-    method.textContent = "Pagamento via Mercado Pago";
-    pay.innerHTML = '<a class="btn-mp" href="' + p.linkMP + '" target="_blank" rel="noopener">&#128179;&nbsp; Pagar com Mercado Pago</a>';
-  }
+  method.textContent = "Escolha a forma de pagamento";
+
+  var pixContent =
+    '<div class="pix-section">' +
+      '<p class="pix-hint">Toque na chave para copiar:</p>' +
+      '<div class="pix-key" onclick="copyPix(\'' + chave + '\')">' + chave + '</div>' +
+      '<p class="pix-hint">Após o PIX, nos avise pelo WhatsApp. &#128156;</p>' +
+    '</div>';
+
+  var cardContent =
+    '<button class="btn-mp" onclick="pagarMercadoPago(' + p.id + ')" id="btnMP_' + p.id + '">' +
+      '&#128179;&nbsp; Pagar com Cartão de Crédito' +
+    '</button>';
+
+  pay.innerHTML =
+    '<div class="payment-options">' +
+      '<div class="payment-option active" onclick="selectPayment(this, \'pix\')">' +
+        '<div class="payment-option-header">' +
+          '<div class="payment-option-radio"></div>' +
+          '<span class="payment-option-title">PIX</span>' +
+        '</div>' +
+        '<p class="payment-option-desc">Transferência instantânea</p>' +
+      '</div>' +
+      '<div class="payment-content active" id="payContentPix">' + pixContent + '</div>' +
+      '<div class="payment-option" onclick="selectPayment(this, \'card\')">' +
+        '<div class="payment-option-header">' +
+          '<div class="payment-option-radio"></div>' +
+          '<span class="payment-option-title">Cartão de Crédito</span>' +
+        '</div>' +
+        '<p class="payment-option-desc">Pague em até 12x via Mercado Pago</p>' +
+      '</div>' +
+      '<div class="payment-content" id="payContentCard">' + cardContent + '</div>' +
+    '</div>';
 
   document.getElementById("overlay").classList.add("open");
   document.body.style.overflow = "hidden";
@@ -373,6 +408,57 @@ function closeModal() {
 
 function closeOnOverlay(e) {
   if (e.target === document.getElementById("overlay")) closeModal();
+}
+
+function selectPayment(el, type) {
+  var options = document.querySelectorAll('.payment-option');
+  options.forEach(function(o) { o.classList.remove('active'); });
+  el.classList.add('active');
+
+  document.getElementById('payContentPix').classList.remove('active');
+  document.getElementById('payContentCard').classList.remove('active');
+
+  if (type === 'pix') {
+    document.getElementById('payContentPix').classList.add('active');
+  } else {
+    document.getElementById('payContentCard').classList.add('active');
+  }
+}
+
+function pagarMercadoPago(id) {
+  var p = presentes.find(function(x) { return x.id === id; });
+  if (!p) return;
+
+  var btn = document.getElementById('btnMP_' + id);
+  btn.disabled = true;
+  btn.innerHTML = '&#9203;&nbsp; Gerando link de pagamento...';
+
+  fetch('/api/create-preference', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: p.id,
+      title: p.nome + ' - Chá de Panela Joaquim & Vanessa',
+      price: p.preco || 10
+    })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (data.init_point) {
+      window.open(data.init_point, '_blank');
+      btn.disabled = false;
+      btn.innerHTML = '&#128179;&nbsp; Pagar com Cartão de Crédito';
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '&#128179;&nbsp; Pagar com Cartão de Crédito';
+      showToast('Erro ao gerar pagamento. Tente novamente.');
+    }
+  })
+  .catch(function() {
+    btn.disabled = false;
+    btn.innerHTML = '&#128179;&nbsp; Pagar com Cartão de Crédito';
+    showToast('Erro de conexão. Tente novamente.');
+  });
 }
 
 function copyPix(chave) {
