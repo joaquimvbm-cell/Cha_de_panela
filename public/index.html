@@ -433,6 +433,9 @@ function pagarMercadoPago(id) {
   btn.disabled = true;
   btn.innerHTML = '&#9203;&nbsp; Gerando link de pagamento...';
 
+  // Abre janela SINCRONO no clique para evitar bloqueio de popup no Safari/iOS
+  var win = window.open('about:blank', '_blank');
+
   fetch('/api/create-preference', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -445,16 +448,22 @@ function pagarMercadoPago(id) {
   .then(function(res) { return res.json(); })
   .then(function(data) {
     if (data.init_point) {
-      window.open(data.init_point, '_blank');
+      if (win && !win.closed) {
+        win.location.href = data.init_point;
+      } else {
+        window.location.href = data.init_point;
+      }
       btn.disabled = false;
       btn.innerHTML = '&#128179;&nbsp; Pagar com Cartão de Crédito';
     } else {
+      if (win && !win.closed) win.close();
       btn.disabled = false;
       btn.innerHTML = '&#128179;&nbsp; Pagar com Cartão de Crédito';
       showToast('Erro ao gerar pagamento. Tente novamente.');
     }
   })
   .catch(function() {
+    if (win && !win.closed) win.close();
     btn.disabled = false;
     btn.innerHTML = '&#128179;&nbsp; Pagar com Cartão de Crédito';
     showToast('Erro de conexão. Tente novamente.');
