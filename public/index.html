@@ -4,6 +4,12 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Chá de Panela - Joaquim & Vanessa</title>
+  <meta name="description" content="Lista de presentes do Chá de Panela de Joaquim & Vanessa. 14 de março de 2026."/>
+  <meta property="og:title" content="Chá de Panela - Joaquim & Vanessa"/>
+  <meta property="og:description" content="O amor chegou e fez morada. Escolha um presente e ajude-nos a montar o nosso cantinho!"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:image" content="https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=1200&q=80"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>&#127859;</text></svg>"/>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     :root {
@@ -270,7 +276,7 @@ var presentes = [
   { id:13, nome:"Copos de Sobremesa",      categoria:"Mesa",     descricao:"Para saborear sobremesas deliciosas com charme e delicadeza.",              preco:130,  emoji:"&#127848;", bg:"linear-gradient(135deg,#e8ddd0,#b09880)", img:"https://images.unsplash.com/photo-1488477181946-6428a0291777?w=700&q=80", pagamento:"pix", chavePix:CONFIG.chavePixPadrao },
   { id:14, nome:"Adega",                   categoria:"Casa",     descricao:"Para conservar nossos vinhos na temperatura perfeita.",                     preco:600,  emoji:"&#127863;", bg:"linear-gradient(135deg,#5c3d2e,#9c6644)", img:"https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=700&q=80", pagamento:"pix", chavePix:CONFIG.chavePixPadrao },
   { id:15, nome:"Robô Aspirador Xiaomi",   categoria:"Casa",     descricao:"Tecnologia e praticidade para manter nosso lar sempre limpo.",             preco:1500, emoji:"&#129302;", bg:"linear-gradient(135deg,#d0c4b8,#8a7060)", img:"https://images.unsplash.com/photo-1603618090561-412154b4bd1b?w=700&q=80", pagamento:"pix", chavePix:CONFIG.chavePixPadrao },
-  { id:16, nome:"Jogo de Panelas",         categoria:"Cozinha",  descricao:"Conjunto completo para equipar nossa cozinha com qualidade.",               preco:400,  emoji:"&#127859;", bg:"linear-gradient(135deg,#c9a06e,#7a4a2e)", img:"https://images.unsplash.com/photo-1588279102558-dabc7b32d9b1?w=700&q=80", pagamento:"pix", chavePix:CONFIG.chavePixPadrao },
+  { id:16, nome:"Jogo de Panelas Premium",  categoria:"Cozinha",  descricao:"Conjunto completo para equipar nossa cozinha com qualidade.",               preco:400,  emoji:"&#127859;", bg:"linear-gradient(135deg,#c9a06e,#7a4a2e)", img:"https://images.unsplash.com/photo-1588279102558-dabc7b32d9b1?w=700&q=80", pagamento:"pix", chavePix:CONFIG.chavePixPadrao },
   { id:17, nome:"Panela de Pressão",       categoria:"Cozinha",  descricao:"Praticidade para preparar refeições saborosas no dia a dia.",               preco:280,  emoji:"&#9832;",   bg:"linear-gradient(135deg,#9e9e9e,#555555)", img:"https://images.unsplash.com/photo-1544233726-9f1d2b27be8b?w=700&q=80", pagamento:"pix", chavePix:CONFIG.chavePixPadrao },
   { id:18, nome:"Roupa de Cama",           categoria:"Quarto",   descricao:"Lençóis macios e elegantes para noites de descanso a dois.",                preco:420,  emoji:"&#128716;", bg:"linear-gradient(135deg,#d4b896,#a07860)", img:"https://images.unsplash.com/photo-1616627561950-9f746e330187?w=700&q=80", pagamento:"pix", chavePix:CONFIG.chavePixPadrao },
   { id:19, nome:"Travesseiros",            categoria:"Quarto",   descricao:"Conforto e aconchego para o melhor sono de cada noite.",                    preco:180,  emoji:"&#128164;", bg:"linear-gradient(135deg,#b5d4e0,#5a8fa0)", img:"https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=700&q=80", pagamento:"pix", chavePix:CONFIG.chavePixPadrao },
@@ -413,12 +419,16 @@ function openModal(id) {
     '</div>';
 
   document.getElementById("overlay").classList.add("open");
+  window._savedScrollY = window.scrollY;
   document.body.style.overflow = "hidden";
 }
 
 function closeModal() {
   document.getElementById("overlay").classList.remove("open");
   document.body.style.overflow = "";
+  if (typeof window._savedScrollY === 'number') {
+    window.scrollTo(0, window._savedScrollY);
+  }
 }
 
 function closeOnOverlay(e) {
@@ -448,9 +458,13 @@ function pagarMercadoPago(id) {
   var preco = p.preco;
   if (!preco) {
     var input = document.getElementById('valorLivreInput');
-    preco = input ? parseFloat(input.value) : 0;
+    preco = input ? parseFloat(input.value.replace(',', '.')) : 0;
     if (!preco || preco < 1) {
       showToast('Por favor, informe um valor de pelo menos R$ 1,00.');
+      return;
+    }
+    if (preco > 10000) {
+      showToast('Valor máximo: R$ 10.000. Verifique o valor digitado.');
       return;
     }
   }
@@ -461,6 +475,7 @@ function pagarMercadoPago(id) {
 
   // Abre janela SINCRONO no clique para evitar bloqueio de popup no Safari/iOS
   var win = window.open('about:blank', '_blank');
+  var popupBlocked = !win || win.closed;
 
   fetch('/api/create-preference', {
     method: 'POST',
@@ -474,7 +489,7 @@ function pagarMercadoPago(id) {
   .then(function(res) { return res.json(); })
   .then(function(data) {
     if (data.init_point) {
-      if (win && !win.closed) {
+      if (!popupBlocked && win && !win.closed) {
         win.location.href = data.init_point;
       } else {
         window.location.href = data.init_point;
@@ -498,29 +513,53 @@ function pagarMercadoPago(id) {
 
 function copyPix(chave) {
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(chave).then(function(){showToast("Chave PIX copiada &#10003;");});
+    navigator.clipboard.writeText(chave)
+      .then(function(){showToast("Chave PIX copiada &#10003;");})
+      .catch(function(){ copyPixFallback(chave); });
   } else {
-    var el = document.createElement("textarea");
-    el.value = chave;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand("copy");
-    document.body.removeChild(el);
-    showToast("Chave PIX copiada");
+    copyPixFallback(chave);
   }
 }
 
+function copyPixFallback(chave) {
+  var el = document.createElement("textarea");
+  el.value = chave;
+  document.body.appendChild(el);
+  el.select();
+  document.execCommand("copy");
+  document.body.removeChild(el);
+  showToast("Chave PIX copiada");
+}
+
+var toastTimer = null;
 function showToast(msg) {
   var t = document.getElementById("toast");
+  if (toastTimer) clearTimeout(toastTimer);
   t.innerHTML = msg;
   t.classList.add("show");
-  setTimeout(function(){t.classList.remove("show");}, 2800);
+  toastTimer = setTimeout(function(){t.classList.remove("show");}, 2800);
 }
 
 document.addEventListener("keydown", function(e){if(e.key==="Escape")closeModal();});
 
 renderFilters();
 renderCards();
+
+// BUG-011: feedback pós-pagamento
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var status = params.get('status');
+  if (status === 'approved') {
+    showToast('Pagamento confirmado! Muito obrigado pelo presente &#128155;');
+    history.replaceState(null, '', window.location.pathname);
+  } else if (status === 'failure') {
+    showToast('Pagamento não concluído. Tente novamente se desejar.');
+    history.replaceState(null, '', window.location.pathname);
+  } else if (status === 'pending') {
+    showToast('Pagamento pendente. Aguardando confirmação.');
+    history.replaceState(null, '', window.location.pathname);
+  }
+})();
 </script>
 </body>
 </html>
