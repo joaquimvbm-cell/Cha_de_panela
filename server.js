@@ -1,9 +1,59 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const { MercadoPagoConfig, Preference } = require('mercadopago');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Mercado Pago - configure com seu Access Token
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || 'SUA_ACCESS_TOKEN_AQUI';
+
+const client = new MercadoPagoConfig({ accessToken: MP_ACCESS_TOKEN });
+
+// Rota para criar preferência de pagamento (Checkout Pro)
+app.post('/api/create-preference', async (req, res) => {
+  const { title, price, id } = req.body;
+
+  if (!title || !price || !id) {
+    return res.status(400).json({ error: 'Dados incompletos' });
+  }
+
+  try {
+    const preference = new Preference(client);
+    const result = await preference.create({
+      body: {
+        items: [
+          {
+            id: String(id),
+            title: title,
+            quantity: 1,
+            unit_price: Number(price),
+            currency_id: 'BRL',
+          }
+        ],
+        payment_methods: {
+          excluded_payment_types: [],
+          installments: 12,
+        },
+        back_urls: {
+          success: `${req.protocol}://${req.get('host')}/?status=approved`,
+          failure: `${req.protocol}://${req.get('host')}/?status=failure`,
+          pending: `${req.protocol}://${req.get('host')}/?status=pending`,
+        },
+        auto_return: 'approved',
+      }
+    });
+
+    res.json({ init_point: result.init_point });
+  } catch (err) {
+    console.error('Erro ao criar preferência:', err);
+    res.status(500).json({ error: 'Erro ao criar pagamento' });
+  }
+});
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
