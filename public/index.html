@@ -115,6 +115,10 @@
     .payment-content{margin-top:16px;display:none;}
     .payment-content.active{display:block;}
     .modal-thanks{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.95rem;color:var(--ink-soft);text-align:center;margin-top:18px;line-height:1.7;}
+    .valor-livre-wrap{text-align:center;margin-bottom:12px;}
+    .valor-livre-label{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1rem;color:var(--ink-soft);margin-bottom:10px;}
+    .valor-livre-input{width:180px;padding:10px 16px;border:1px solid var(--border);font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--terra);font-weight:600;text-align:center;outline:none;transition:border-color .2s;}
+    .valor-livre-input:focus{border-color:var(--terra);}
 
     /* FOOTER */
     footer{padding:56px 40px;text-align:center;background:var(--ink);color:var(--cream);}
@@ -356,8 +360,19 @@ function openModal(id) {
 
   document.getElementById("modalCat").textContent    = p.categoria;
   document.getElementById("modalTitle").textContent  = p.nome;
-  document.getElementById("modalPrice").textContent  = fmtPreco(p.preco);
   document.getElementById("modalThanks").textContent = CONFIG.mensagemAgradecimento;
+
+  var modalPrice = document.getElementById("modalPrice");
+  if (p.preco) {
+    modalPrice.textContent = fmtPreco(p.preco);
+  } else {
+    modalPrice.innerHTML =
+      '<div class="valor-livre-wrap">' +
+        '<p class="valor-livre-label">Escolha o valor da sua contribuição:</p>' +
+        '<span style="font-size:1.1rem;color:var(--terra);margin-right:4px;">R$</span>' +
+        '<input type="number" id="valorLivreInput" class="valor-livre-input" min="1" step="0.01" placeholder="50,00" />' +
+      '</div>';
+  }
 
   var pay    = document.getElementById("modalPayment");
   var method = document.getElementById("modalMethod");
@@ -429,6 +444,17 @@ function pagarMercadoPago(id) {
   var p = presentes.find(function(x) { return x.id === id; });
   if (!p) return;
 
+  // Resolve o preco: fixo do item ou digitado pelo usuario
+  var preco = p.preco;
+  if (!preco) {
+    var input = document.getElementById('valorLivreInput');
+    preco = input ? parseFloat(input.value) : 0;
+    if (!preco || preco < 1) {
+      showToast('Por favor, informe um valor de pelo menos R$ 1,00.');
+      return;
+    }
+  }
+
   var btn = document.getElementById('btnMP_' + id);
   btn.disabled = true;
   btn.innerHTML = '&#9203;&nbsp; Gerando link de pagamento...';
@@ -442,7 +468,7 @@ function pagarMercadoPago(id) {
     body: JSON.stringify({
       id: p.id,
       title: p.nome + ' - Chá de Panela Joaquim & Vanessa',
-      price: p.preco || 10
+      price: preco
     })
   })
   .then(function(res) { return res.json(); })
