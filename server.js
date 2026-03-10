@@ -6,11 +6,15 @@ const { MercadoPagoConfig, Preference } = require('mercadopago');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.set('trust proxy', true);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Mercado Pago - configure com seu Access Token
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || 'SUA_ACCESS_TOKEN_AQUI';
+
+// URL base do site (usa variável de ambiente ou monta a partir do request)
+const SITE_URL = process.env.SITE_URL || null;
 
 const client = new MercadoPagoConfig({ accessToken: MP_ACCESS_TOKEN });
 
@@ -40,9 +44,9 @@ app.post('/api/create-preference', async (req, res) => {
           installments: 12,
         },
         back_urls: {
-          success: `${req.protocol}://${req.get('host')}/?status=approved`,
-          failure: `${req.protocol}://${req.get('host')}/?status=failure`,
-          pending: `${req.protocol}://${req.get('host')}/?status=pending`,
+          success: `${SITE_URL || req.protocol + '://' + req.get('host')}/?status=approved`,
+          failure: `${SITE_URL || req.protocol + '://' + req.get('host')}/?status=failure`,
+          pending: `${SITE_URL || req.protocol + '://' + req.get('host')}/?status=pending`,
         },
         auto_return: 'approved',
       }
